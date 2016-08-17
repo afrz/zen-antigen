@@ -1,0 +1,8 @@
+{
+  "name": "zen-antigen",
+  "version": "1.1.0",
+  "description": "Shared security management for ZEN web SPA",
+  "main": "index.js",
+  "author": "AFRZ",
+  "license": "SEE LICENSE IN LICENSE"
+}
