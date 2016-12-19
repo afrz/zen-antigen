@@ -15,23 +15,64 @@ function storageAvailable(type) {
   }
 }
 
-//Create fake local storage supportin Web API storage main interface
-function createDummyLocalStorage() {
+//Create fake 'in memory' local storage supportin Web API storage main interface
+function memoryStorage() {
 
   return {
     getItem: function() {},
     setItem: function() {},
-    removeItem: function() {}
+    removeItem: function() {},
+    length: 0
   }
 }
 
-/** Returns appropriate Web API storage interface for browser usage.
-  @returns object : https://developer.mozilla.org/fr/docs/Web/API/Storage
+/** Retrieve Web API storage interface for browser usage.
+  @param {string} type - expected storage type
+  @returns {WebAPI} storage - https://developer.mozilla.org/fr/docs/Web/API/Storage
 */
-export function getStorage() {
+export function getStorage(type = 'sessionStorage') {
 
-  if (storageAvailable('localStorage')) {
-    return window.localStorage;
+  if (storageAvailable(type)) {
+    return window[type];
   }
-  return createDummyLocalStorage();
+  return memoryStorage();
 }
+
+//initialize both storage pointers
+export const perpetual = getStorage('localStorage');
+export const ephemeral = getStorage('sessionStorage');
+
+// 
+// transfers sessionStorage from one tab to another
+// const transferStorageEventHandler = function(event) {
+//
+//   if (!event) { event = window.event; } // ie hack
+//   if (!event.newValue) return; // do nothing if no value to work with
+//   if (event.key == '_syncingStorage_') {
+//
+//     // another tab asked for the sessionStorage -> send it
+//     localStorage.setItem('_sessionStorage_', JSON.stringify(sessionStorage));
+//     // the other tab should now have it, so we're done with it.
+//     localStorage.removeItem('_sessionStorage_'); //could do short timeout as well.
+//
+//   } else if (event.key == '_sessionStorage_' && !sessionStorage.length) {
+//
+//     // another tab sent data <- get it
+//     var data = JSON.parse(event.newValue);
+//     for (var key in data) {
+//       sessionStorage.setItem(key, data[key]);
+//     }
+//     //window.location.reload();
+//   }
+// };
+//
+// //listen for changes to localStorage
+// if (window.addEventListener) {
+//   window.addEventListener("storage", transferStorageEventHandler, false);
+// }
+//
+// //ask other tabs for session storage (this is ONLY to trigger event)
+// if (!sessionStorage.length) {
+//   localStorage.setItem('_syncingStorage_', 'syncing');
+//   localStorage.removeItem('_syncingStorage_');
+// }

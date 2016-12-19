@@ -1,82 +1,134 @@
-import { getStorage } from './storage';
+import { perpetual, ephemeral } from './storage';
 
-//detect storage to be used safely
-const storage = getStorage();
+//define constants
+const SECURITY_MANAGER = 'SM';
+const PROP_INSTANCE = `${SECURITY_MANAGER}.instance`;
+const PROP_LOGIN = `${SECURITY_MANAGER}.login`;
+const PROP_JWT = `${SECURITY_MANAGER}.jwt`;
+const PROP_SYNC = `${SECURITY_MANAGER}.sync`;
+
+//defines synchronization options
+export const SYNC_PERPETUAL = 'P';
+export const SYNC_EPHEMERAL = 'E';
+
+//retrieve synchronization mode
+function getSyncMode() {
+  //here, always use permanent storage
+  return perpetual.getItem(PROP_SYNC) || SYNC_EPHEMERAL;
+}
+
+//set current storage
+let storage = ephemeral;
+
+//recompute storage
+function recomputeStorage() {
+  storage = getSyncMode() === SYNC_PERPETUAL ? perpetual : ephemeral;
+}
 
 /**
-  Manage credentials access using local storage
+  Manage credentials persistance through window's storage
 */
 const SecurityManager = {
 
-  //restore user credentials
-  instance: storage.getItem('SM.instance'),
-  login: storage.getItem('SM.login'),
-  jwt: storage.getItem('SM.jwt'),
-  //authentication mode
-  authMode: null,
+  init() {
+
+    this.sync = getSyncMode();
+    recomputeStorage();
+    //user credentials
+    this.instance = storage.getItem(PROP_INSTANCE);
+    this.login = storage.getItem(PROP_LOGIN);
+    this.jwt = storage.getItem(PROP_JWT);
+    //authentication mode
+    this.authMode = null;
+    return this;
+  },
 
   //check if credentials have already been accredited once
-  authorized: function() {
-    return (this.jwt !== null);
+  authorized() {
+    return this.jwt !== null;
   },
 
   //extract payload information from token
-  extractPayload: function(jwt) {
+  _extractPayload(token) {
 
     let payload = {};
     try {
       //extract
-      const parts = jwt.split('.');
+      const parts = token.split('.');
       payload = JSON.parse(atob(parts[1]));
 
-    } catch (e) { /*ignore*/ }
+    } catch (e) { return false }
 
     //and store
     this.instance = payload.instance || '';
-    storage.setItem('SM.instance', this.instance);
+    storage.setItem(PROP_INSTANCE, this.instance);
 
     this.login = payload.login || '';
-    storage.setItem('SM.login', this.login);
+    storage.setItem(PROP_LOGIN, this.login);
 
     this.authMode = payload.mode || '';
+
+    //check expiration
+    const expired = payload.exp * 1000 <= new Date().getTime();
+    //valid if not expired
+    return !expired;
   },
 
-  //compute redentials from token
-  storeCredentials: function(jwt) {
+  //reload security manager from given token
+  _reloadFromToken(token) {
 
     this.logout(true);
     //store token
-    this.jwt = jwt;
-    storage.setItem('SM.jwt', this.jwt);
+    this.jwt = token;
+    storage.setItem(PROP_JWT, this.jwt);
 
-    this.extractPayload(jwt);
+    return this._extractPayload(token);
   },
 
-  //reload security manager from locally stored JWT
-  restore: function() {
+  /** Attempt to restore security manager
+    @param {string} token - new token to import
+    @returns {bool} - true if token is valid
+  */
+  restore(token) {
 
-    if (this.jwt) {
-      this.storeCredentials(this.jwt);
+    //import from new fresh token or restore locally stored JWT if existing
+    const restoreToken = token || this.jwt;
+    if (restoreToken) {
+      return this._reloadFromToken(restoreToken);
+    }
+    return false;
+  },
+
+  //change storage synchronization mode
+  changeSync(syncMode = SYNC_EPHEMERAL) {
+
+    if (syncMode !== this.sync) {
+      perpetual.setItem(PROP_SYNC, syncMode);
+      this.sync = syncMode;
+      recomputeStorage();
     }
   },
 
   //clean stored credentials
-  logout: function(cleanCreds) {
+  logout(cleanCreds) {
 
-    //keep info for future access
+    //keep info for future access ?
     if (cleanCreds) {
-      storage.removeItem('SM.instance');
+      ephemeral.removeItem(PROP_INSTANCE);
+      perpetual.removeItem(PROP_INSTANCE);
       this.instance = null;
 
-      storage.removeItem('SM.login');
+      ephemeral.removeItem(PROP_LOGIN);
+      perpetual.removeItem(PROP_LOGIN);
       this.login = null;
     }
 
     //but always remove token
-    storage.removeItem('SM.jwt');
+    ephemeral.removeItem(PROP_JWT);
+    perpetual.removeItem(PROP_JWT);
     this.jwt = null;
     this.authMode = null;
   }
 };
 
-export default SecurityManager;
+export default SecurityManager.init();
