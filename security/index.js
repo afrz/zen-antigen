@@ -13,8 +13,13 @@ export const SYNC_EPHEMERAL = 'E';
 
 //retrieve synchronization mode
 function getSyncMode() {
-  //here, always use permanent storage
+  //here, always use permanent storage for sync option
   return perpetual.getItem(PROP_SYNC) || SYNC_EPHEMERAL;
+}
+
+//return true if storage sync use perpetual mode
+export function isSyncPerpetual() {
+  return getSyncMode() === SYNC_PERPETUAL;
 }
 
 //set current storage
@@ -22,7 +27,7 @@ let storage = ephemeral;
 
 //recompute storage
 function recomputeStorage() {
-  storage = getSyncMode() === SYNC_PERPETUAL ? perpetual : ephemeral;
+  storage = isSyncPerpetual() ? perpetual : ephemeral;
 }
 
 /**
@@ -31,7 +36,6 @@ function recomputeStorage() {
 const SecurityManager = {
 
   init() {
-
     this.sync = getSyncMode();
     recomputeStorage();
     //user credentials
@@ -69,7 +73,7 @@ const SecurityManager = {
     this.authMode = payload.mode || '';
 
     //check expiration
-    const expired = payload.exp * 1000 <= new Date().getTime();
+    const expired = payload.exp * 1000 <= Date.now();
     //valid if not expired
     return !expired;
   },

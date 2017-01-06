@@ -41,38 +41,3 @@ export function getStorage(type = 'sessionStorage') {
 //initialize both storage pointers
 export const perpetual = getStorage('localStorage');
 export const ephemeral = getStorage('sessionStorage');
-
-// 
-// transfers sessionStorage from one tab to another
-// const transferStorageEventHandler = function(event) {
-//
-//   if (!event) { event = window.event; } // ie hack
-//   if (!event.newValue) return; // do nothing if no value to work with
-//   if (event.key == '_syncingStorage_') {
-//
-//     // another tab asked for the sessionStorage -> send it
-//     localStorage.setItem('_sessionStorage_', JSON.stringify(sessionStorage));
-//     // the other tab should now have it, so we're done with it.
-//     localStorage.removeItem('_sessionStorage_'); //could do short timeout as well.
-//
-//   } else if (event.key == '_sessionStorage_' && !sessionStorage.length) {
-//
-//     // another tab sent data <- get it
-//     var data = JSON.parse(event.newValue);
-//     for (var key in data) {
-//       sessionStorage.setItem(key, data[key]);
-//     }
-//     //window.location.reload();
-//   }
-// };
-//
-// //listen for changes to localStorage
-// if (window.addEventListener) {
-//   window.addEventListener("storage", transferStorageEventHandler, false);
-// }
-//
-// //ask other tabs for session storage (this is ONLY to trigger event)
-// if (!sessionStorage.length) {
-//   localStorage.setItem('_syncingStorage_', 'syncing');
-//   localStorage.removeItem('_syncingStorage_');
-// }

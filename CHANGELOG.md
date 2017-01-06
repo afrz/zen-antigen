@@ -1,4 +1,9 @@
 
+### 2.1.0
+**2017.06.01**
+
+* [NEW] Synchronize session storage between browser tabs
+
 ### 2.0.0
 **2016.12.19**
 
